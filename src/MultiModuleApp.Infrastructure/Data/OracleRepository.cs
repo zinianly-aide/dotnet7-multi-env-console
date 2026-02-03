@@ -10,29 +10,26 @@ public interface IOracleRepository
     Task<object?> ExecuteScalarAsync(string query, params OracleParameter[] parameters);
 }
 
-public class OracleRepository : IOracleRepository, IDisposable
+public class OracleRepository : IOracleRepository
 {
     private readonly string _connectionString;
-    private OracleConnection? _connection;
 
     public OracleRepository(string connectionString)
     {
         _connectionString = connectionString;
     }
 
-    private OracleConnection GetConnection()
+    private OracleConnection CreateConnection()
     {
-        if (_connection == null || _connection.State != ConnectionState.Open)
-        {
-            _connection = new OracleConnection(_connectionString);
-            _connection.Open();
-        }
-        return _connection;
+        var connection = new OracleConnection(_connectionString);
+        connection.Open();
+        return connection;
     }
 
     public async Task<DataTable> ExecuteQueryAsync(string query, params OracleParameter[] parameters)
     {
-        using var command = GetConnection().CreateCommand();
+        await using var connection = CreateConnection();
+        using var command = connection.CreateCommand();
         command.CommandText = query;
         command.Parameters.AddRange(parameters);
 
@@ -44,7 +41,8 @@ public class OracleRepository : IOracleRepository, IDisposable
 
     public async Task<int> ExecuteNonQueryAsync(string query, params OracleParameter[] parameters)
     {
-        using var command = GetConnection().CreateCommand();
+        await using var connection = CreateConnection();
+        using var command = connection.CreateCommand();
         command.CommandText = query;
         command.Parameters.AddRange(parameters);
 
@@ -53,15 +51,11 @@ public class OracleRepository : IOracleRepository, IDisposable
 
     public async Task<object?> ExecuteScalarAsync(string query, params OracleParameter[] parameters)
     {
-        using var command = GetConnection().CreateCommand();
+        await using var connection = CreateConnection();
+        using var command = connection.CreateCommand();
         command.CommandText = query;
         command.Parameters.AddRange(parameters);
 
         return await command.ExecuteScalarAsync();
-    }
-
-    public void Dispose()
-    {
-        _connection?.Dispose();
     }
 }
