@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using MultiModuleApp.Infrastructure.Data;
 using MultiModuleApp.Sync.Interfaces;
 using Serilog;
@@ -131,7 +132,7 @@ public class DataSyncService : IDataSyncService
             stopwatch.Stop();
             result.Duration = stopwatch.Elapsed;
 
-            Log.Information("Sync completed successfully: {Written} records written in {Duration}",
+            Log.Information("Sync completed successfully: {Written} records written in {Duration}", 
                 result.RecordsWritten, result.Duration);
 
             _syncHistory.Add(new SyncReport
@@ -158,28 +159,7 @@ public class DataSyncService : IDataSyncService
         return result;
     }
 
-    public async Task<SyncResult> BidirectionalSyncAsync(string tableName)
-    {
-        Log.Information("Starting bidirectional sync for table: {TableName}", tableName);
-
-        var result1 = await SyncFromOracleToMySqlAsync(tableName);
-        var result2 = await SyncFromMySqlToOracleAsync(tableName);
-
-        var combinedResult = new SyncResult
-        {
-            Success = result1.Success && result2.Success,
-            RecordsRead = result1.RecordsRead + result2.RecordsRead,
-            RecordsWritten = result1.RecordsWritten + result2.RecordsWritten,
-            RecordsFailed = result1.RecordsFailed + result2.RecordsFailed,
-            Duration = result1.Duration + result2.Duration,
-            SyncTime = DateTime.UtcNow,
-            ErrorMessage = result1.ErrorMessage ?? result2.ErrorMessage
-        };
-
-        return combinedResult;
-    }
-
-    public Task<IEnumerable<SyncReport>> GetSyncHistoryAsync()
+    public async Task<IEnumerable<SyncReport>> GetSyncHistoryAsync()
     {
         return Task.FromResult<IEnumerable<SyncReport>>(_syncHistory.OrderByDescending(r => r.SyncTime));
     }
