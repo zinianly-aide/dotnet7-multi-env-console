@@ -42,3 +42,4 @@ jobs:
             echo "No test projects found, skipping dotnet test."
           fi
 # Trigger workflow test
+// Trigger GitHub Actions workflow
