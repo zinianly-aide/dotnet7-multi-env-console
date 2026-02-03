@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  dotnet-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: multimodule-app-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__OracleConnection=Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=ORCL)));User Id=dev_user;Password=dev_pass;
+      - ConnectionStrings__MySqlConnection=Server=mysql;Database=devdb;User=dev_user;Password=dev_pass;AllowUserVariables=True;
+    volumes:
+      - ./logs:/app/logs
+      - ./MultiModuleApp.Console:/app:ro
+    networks:
+      - multimodule-network
+    depends_on:
+      - mysql
+      - oracle
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    container_name: multimodule-mysql-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: devdb
+      MYSQL_USER: dev_user
+      MYSQL_PASSWORD: dev_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data-dev:/var/lib/mysql
+      - ./scripts/mysql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - multimodule-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+
+  oracle:
+    image: gvenzl/oracle-free:23-slim
+    container_name: multimodule-oracle-dev
+    environment:
+      ORACLE_PASSWORD: dev_pass
+      ORACLE_DATABASE: ORCL
+      APP_USER: dev_user
+      APP_USER_PASSWORD: dev_pass
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data-dev:/opt/oracle/oradata
+      - ./scripts/oracle:/container-entrypoint-initdb.d:ro
+    networks:
+      - multimodule-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: multimodule-prometheus-dev
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data-dev:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - multimodule-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: multimodule-grafana-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data-dev:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - multimodule-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+networks:
+  multimodule-network:
+    driver: bridge
+
+volumes:
+  mysql-data-dev:
+  oracle-data-dev:
+  prometheus-data-dev:
+  grafana-data-dev:

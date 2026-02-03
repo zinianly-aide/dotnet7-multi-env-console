@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\MultiModuleApp.Core\MultiModuleApp.Core.csproj" />
+    <ProjectReference Include="..\src\MultiModuleApp.Infrastructure\MultiModuleApp.Infrastructure.csproj" />
+    <ProjectReference Include="..\src\MultiModuleApp.Logging\MultiModuleApp.Logging.csproj" />
+    <ProjectReference Include="..\src\MultiModuleApp.Observability\MultiModuleApp.Observability.csproj" />
+    <ProjectReference Include="..\src\MultiModuleApp.Audit\MultiModuleApp.Audit.csproj" />
+    <ProjectReference Include="..\src\MultiModuleApp.Sync\MultiModuleApp.Sync.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

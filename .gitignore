@@ -1,0 +1,92 @@
+# Build results
+[Dd]d*/
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.rsp
+*.sbr
+*.tlb
+*.tlog
+*.lastbuildstate
+*.cache
+*.ilk
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svc
+*.scc
+
+# NuGet packages
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+
+# Visual Studio cache/options directory
+.vs/
+*.suo
+*.cache
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Docker
+.dockerignore
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+*.txt
+
+# Config files with secrets
+**/appsettings.*.json
+!**/appsettings.json.example
+**/appsettings.*.Development.json
+!**/appsettings.Development.json
+
+# Test results
+TestResults/
+*.coverage
+*.coveragexml
+*.coverage.json
+*.coveragexml
+*.trx
