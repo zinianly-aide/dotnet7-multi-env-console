@@ -28,7 +28,7 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 // Validate configuration
-await ValidateConfigurationAsync(builder.Configuration);
+ValidateConfiguration(builder.Configuration);
 
 // Configure Serilog
 var loggerConfig = new LoggerConfiguration();
@@ -53,7 +53,7 @@ try
     Log.Information("Service Name: {ServiceName}", builder.Configuration["OpenTelemetry:ServiceName"]);
 
     // Display configuration summary
-    await DisplayConfigurationSummaryAsync(host.Services, builder.Configuration);
+    DisplayConfigurationSummary(builder.Configuration, environment);
 
     // Run the application
     await host.RunAsync();
@@ -72,13 +72,13 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
     // Database
     services.AddDbContext<MySqlDbContext>(options =>
     {
-        var connectionString = configuration.GetConnectionString("MySqlConnection");
+        var connectionString = GetRequiredConnectionString(configuration, "MySqlConnection");
         options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
     });
 
-    services.AddSingleton<IOracleRepository>(sp =>
+    services.AddTransient<IOracleRepository>(sp =>
     {
-        var connectionString = configuration.GetConnectionString("OracleConnection");
+        var connectionString = GetRequiredConnectionString(configuration, "OracleConnection");
         return new OracleRepository(connectionString);
     });
 
@@ -105,26 +105,33 @@ void ConfigureObservability(HostApplicationBuilder builder, IConfiguration confi
     var serviceName = configuration["OpenTelemetry:ServiceName"] ?? "MultiModuleApp";
     var serviceVersion = configuration["OpenTelemetry:ServiceVersion"] ?? "1.0.0";
 
-    // Metrics
     builder.Services.AddOpenTelemetry()
         .ConfigureResource(resource => resource
             .AddService(serviceName, serviceVersion: serviceVersion))
-        .AddMeter(serviceName)
-        .AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel")
-        .AddConsoleExporter();
-
-    // Tracing
-    builder.Services.AddOpenTelemetry()
-        .ConfigureResource(resource => resource
-            .AddService(serviceName, serviceVersion: serviceVersion))
-        .AddSource(serviceName)
-        .AddSource("Microsoft.AspNetCore")
-        .AddHttpClientInstrumentation()
-        .AddAspNetCoreInstrumentation()
-        .AddConsoleExporter();
+        .WithMetrics(metrics => metrics
+            .AddMeter(serviceName)
+            .AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel")
+            .AddConsoleExporter())
+        .WithTracing(tracing => tracing
+            .AddSource(serviceName)
+            .AddSource("Microsoft.AspNetCore")
+            .AddHttpClientInstrumentation()
+            .AddAspNetCoreInstrumentation()
+            .AddConsoleExporter());
 }
 
-async Task ValidateConfigurationAsync(IConfiguration configuration)
+string GetRequiredConnectionString(IConfiguration configuration, string name)
+{
+    var connectionString = configuration.GetConnectionString(name);
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException($"{name} connection string is missing.");
+    }
+
+    return connectionString;
+}
+
+void ValidateConfiguration(IConfiguration configuration)
 {
     Console.WriteLine("\n=== Configuration Validation ===");
 
@@ -162,6 +169,7 @@ async Task ValidateConfigurationAsync(IConfiguration configuration)
         {
             Console.WriteLine($"  - {error}");
         }
+        throw new InvalidOperationException("Configuration validation failed. Fix errors and restart.");
     }
     else
     {
@@ -171,10 +179,12 @@ async Task ValidateConfigurationAsync(IConfiguration configuration)
     Console.WriteLine("=================================\n");
 }
 
-async Task DisplayConfigurationSummaryAsync(IServiceProvider serviceProvider, IConfiguration configuration)
+void DisplayConfigurationSummary(
+    IConfiguration configuration,
+    string environmentName)
 {
     Console.WriteLine("\n=== Configuration Summary ===");
-    Console.WriteLine($"Environment: {configuration["Environment"]}");
+    Console.WriteLine($"Environment: {environmentName}");
     Console.WriteLine($"Service Name: {configuration["OpenTelemetry:ServiceName"]}");
     Console.WriteLine($"Service Version: {configuration["OpenTelemetry:ServiceVersion"]}");
     Console.WriteLine($"Audit Enabled: {configuration.GetValue<bool>("Audit:Enabled")}");
@@ -253,9 +263,10 @@ public class ApplicationWorker : BackgroundService
         }
     }
 
-    private async Task PerformHealthCheckAsync(IServiceProvider services)
+    private Task PerformHealthCheckAsync(IServiceProvider services)
     {
         // Simple health check - log that the application is still running
         _logger.LogDebug("Health check passed at: {time}", DateTimeOffset.Now);
+        return Task.CompletedTask;
     }
 }
